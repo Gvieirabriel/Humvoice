@@ -10,7 +10,7 @@ if(DEFINED ENV{JUCE_PATH})
     set(JUCE_PATH $ENV{JUCE_PATH})
 else()
     # Default path - change this to match your JUCE installation
-    set(JUCE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../juce-8.0.12-windows/JUCE")
+    set(JUCE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../juce-8.0.12-windows/JUCE")
 endif()
 
 # Check if JUCE path exists

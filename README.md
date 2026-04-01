@@ -132,49 +132,40 @@ gainSlider.onValueChange = [this] { /* handle value change */ };
 
 ## Build
 
-### Requisitos
+### Requirements
 - JUCE 8.x source tree
 - CMake 3.22+
-- Visual Studio 2019/2022 ou equivalente com suporte C++
+- Visual Studio 2019/2022 or equivalent with C++ support
 
-### Instruções
+### Instructions
 
 ```powershell
 cd "C:\Users\gviei\OneDrive\Documents\Projects\Humvoice"
-# Ajuste JUCE_PATH se necessário
+# Adjust JUCE_PATH if needed
 $env:JUCE_PATH = "C:\Users\gviei\OneDrive\Documents\juce-8.0.12-windows\JUCE"
 cmake -B build
 cmake --build build --config Release
 ```
 
-### Saída
+### Output
 - `build/Humvoice_artefacts/Release/VST3/Humvoice.vst3`
 
 ## Open Source Policy
 
-Este é um projeto open source. Por favor, siga estas diretrizes:
+This project is open source. Please follow these guidelines:
 
-- Respeito e cortesia são obrigatórios.
-- Assédio, discurso de ódio ou conduta tóxica não são permitidos.
-- Não coloque credenciais, chaves ou dados sensíveis em código/pull requests.
-- Use `CMakeLists.local.txt` para path/variáveis locais.
+- Respect and courtesy are mandatory.
+- Harassment, hate speech, or toxic conduct are not tolerated.
+- Do not include credentials, keys, or sensitive data in code/pull requests.
+- Use `CMakeLists.local.txt` for local paths and variables.
 
-## Contribuindo
+## Contributing
 
-1. Fork e clone este repositório.
-2. Crie branch de feature: `feature/nome`.
-3. Faça alterações com commits atômicos e mensagens claras.
-4. Execute build e testes.
-5. Abra PR com descrição e casos de uso.
-
-## License
-
-Este projeto segue a mesma licença do JUCE (ver arquivo de licenciamento JUCE).
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test the build
-5. Submit a pull request
+1. Fork and clone this repository.
+2. Create a feature branch: `feature/your-feature`.
+3. Make changes with atomic commits and clear messages.
+4. Run build and tests before pushing.
+5. Open a PR with description and test details.
 
 ## License
 
