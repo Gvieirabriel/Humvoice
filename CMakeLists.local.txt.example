@@ -1,0 +1,12 @@
+# Local development configuration
+# Copy this file to CMakeLists.local.txt and modify for your environment
+# This file is ignored by git - use it for local customizations
+
+# Example: Override JUCE path for your system
+# set(JUCE_PATH "C:/Path/To/Your/JUCE" CACHE PATH "Path to JUCE")
+
+# Example: Add custom compiler flags
+# target_compile_definitions(Humvoice PRIVATE MY_CUSTOM_DEFINE=1)
+
+# Example: Add custom include directories
+# target_include_directories(Humvoice PRIVATE "path/to/custom/includes")

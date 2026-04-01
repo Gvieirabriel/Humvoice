@@ -1,0 +1,11 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "default",
+      "displayName": "Default",
+      "description": "Default build using system compiler",
+      "binaryDir": "${sourceDir}/build"
+    }
+  ]
+}
