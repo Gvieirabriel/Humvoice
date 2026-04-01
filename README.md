@@ -123,8 +123,53 @@ gainSlider.onValueChange = [this] { /* handle value change */ };
 - Editor shows basic UI with plugin name
 - State save/restore is stubbed but functional
 
-## Contributing
+## Usage
 
+1. Open your DAW or VST3 host.
+2. Scan paths including `build/Humvoice_artefacts/Release/VST3`.
+3. Load `Humvoice.vst3`.
+4. MIDI in/out is available; audio is pass-through.
+
+## Build
+
+### Requisitos
+- JUCE 8.x source tree
+- CMake 3.22+
+- Visual Studio 2019/2022 ou equivalente com suporte C++
+
+### Instruções
+
+```powershell
+cd "C:\Users\gviei\OneDrive\Documents\Projects\Humvoice"
+# Ajuste JUCE_PATH se necessário
+$env:JUCE_PATH = "C:\Users\gviei\OneDrive\Documents\juce-8.0.12-windows\JUCE"
+cmake -B build
+cmake --build build --config Release
+```
+
+### Saída
+- `build/Humvoice_artefacts/Release/VST3/Humvoice.vst3`
+
+## Open Source Policy
+
+Este é um projeto open source. Por favor, siga estas diretrizes:
+
+- Respeito e cortesia são obrigatórios.
+- Assédio, discurso de ódio ou conduta tóxica não são permitidos.
+- Não coloque credenciais, chaves ou dados sensíveis em código/pull requests.
+- Use `CMakeLists.local.txt` para path/variáveis locais.
+
+## Contribuindo
+
+1. Fork e clone este repositório.
+2. Crie branch de feature: `feature/nome`.
+3. Faça alterações com commits atômicos e mensagens claras.
+4. Execute build e testes.
+5. Abra PR com descrição e casos de uso.
+
+## License
+
+Este projeto segue a mesma licença do JUCE (ver arquivo de licenciamento JUCE).
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
