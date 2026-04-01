@@ -43,6 +43,14 @@ target_compile_definitions(Humvoice
 # Add source files
 target_sources(Humvoice
     PRIVATE
+        src/AudioEngine.h
+        src/AudioEngine.cpp
+        src/PitchEngine.h
+        src/PitchEngine.cpp
+        src/MidiEngine.h
+        src/MidiEngine.cpp
+        src/DrumEngine.h
+        src/DrumEngine.cpp
         src/PluginProcessor.h
         src/PluginProcessor.cpp
         src/PluginEditor.h

@@ -1,172 +1,138 @@
-# Humvoice - Minimal JUCE VST3 Plugin
+# Humvoice
 
-A minimal VST3 plugin built with JUCE and CMake.
+> **Voice-to-MIDI VST3 plugin** — hum, sing, or whistle and convert your voice into MIDI notes in real time.
+
+Humvoice captures audio from any input, detects pitch or transient onsets, and generates MIDI output your DAW can route to any instrument. It runs entirely inside the plugin without external services or subscriptions.
+
+---
 
 ## Features
 
-- **AudioProcessor + Editor**: Full plugin architecture with a simple UI
-- **Stereo I/O**: Stereo input and output buses
-- **MIDI Support**: MIDI output enabled for extensibility
-- **Pass-through Audio**: No DSP logic - audio flows through unchanged
-- **CMake Build**: No Projucer required
+### Pitch Mode
+- **Real-time pitch detection** via autocorrelation optimized for the human voice (80–1000 Hz default range)
+- **MIDI note output** with velocity derived from input amplitude
+- **Pitch bend output** — continuous 14-bit pitch bend tracks micro-variations between notes for expressive, smooth MIDI
+- **Scale quantization** — snap detected notes to Major or Minor scales with a configurable root note
+- **Vocal range calibration** — sing your range for 5 seconds; Humvoice tunes the pitch detector to your voice
 
-## Project Structure
+### Drum Mode
+- **Onset detection** — detects transients (hits, plosives, percussion sounds) from any audio input
+- **Single MIDI note trigger** — maps each onset to a configurable MIDI note (default: GM snare, note 38)
+- **Velocity sensitivity** — hit strength is mapped logarithmically to MIDI velocity 1–127
+
+### Signal Processing
+- **Noise gate** — configurable dBFS floor, blocks detection below threshold
+- **Median filter** — 5-frame pitch history rejects single-frame outliers without blurring note transitions
+- **Octave error correction** — 2-pass half-lag check and temporal continuity prevent octave jumps
+- **Minimum note duration** — configurable hold time prevents flicker from fast transient detections
+- **Hysteresis** — 60-cent deadband around the active note absorbs natural vibrato without triggering note changes
+
+### Controls (all DAW-automatable)
+| Parameter | Range | Default | Description |
+|---|---|---|---|
+| Mode | Pitch / Drum | Pitch | Selects pitch-tracking or drum-trigger engine |
+| Sensitivity | 0 – 1 | 0.5 | Pitch detection threshold / onset sensitivity |
+| Noise Gate | −80 – 0 dBFS | −40 dB | Minimum signal level |
+| Smoothing | 0 – 200 ms | 20 ms | EMA time constant for display pitch and pitch bend |
+| Min Note | 0 – 500 ms | 100 ms | Minimum time before a note change is committed |
+| Scale | Off / Major / Minor | Off | Scale quantization |
+| Root Note | C – B | C | Root note for scale quantization |
+| Drum Note | 0 – 127 | 38 | MIDI note fired on each detected onset |
+
+---
+
+## How to Use
+
+### Basic Setup
+1. Insert **Humvoice** on an audio track carrying your microphone or instrument input.
+2. Route its **MIDI output** to an instrument track in your DAW.
+3. Arm the instrument track and play or record.
+
+### Pitch Mode (default)
+1. Set **Mode → Pitch**.
+2. Adjust **Noise Gate** until the display reads `--` in silence.
+3. Hum or sing — the pitch panel shows the detected note, cents offset, and a stability bar.
+4. Use **Scale** and **Root Note** to lock output to a key.
+5. Increase **Smoothing** for legato feel; lower it for faster response.
+
+### Vocal Range Calibration
+1. Click **Calibrate** and sing through your full range (low to high) within 5 seconds.
+2. Humvoice stores your range with ±25 % headroom and constrains pitch detection to it.
+3. The pitch panel briefly displays your captured range (e.g., `C2 – G4`).
+
+### Drum Mode
+1. Set **Mode → Drum**.
+2. Use your voice as a percussion instrument — clicks, pops, and beatbox hits trigger MIDI.
+3. Set **Drum Note** to the target GM note (36 = kick, 38 = snare, 42 = hi-hat, etc.).
+4. Adjust **Sensitivity** and **Noise Gate** to dial in how hard you need to hit.
+
+### Pitch Bend
+Pitch bend is always active in Pitch Mode. Humvoice sends 14-bit pitch bend messages continuously as your voice moves between notes, giving connected instruments expressive, human-feeling transitions. Pitch bend resets to centre on every note change. The receiving instrument must have its pitch bend range set to **±2 semitones** (MIDI standard) to match.
+
+---
+
+## Architecture
 
 ```
-Humvoice/
-├── CMakeLists.txt              # CMake configuration
-├── CMakePresets.json           # CMake presets
-├── .vscode/
-│   └── c_cpp_properties.json    # VS Code IntelliSense config
-├── .gitignore                  # Git ignore rules
-├── src/
-│   ├── PluginProcessor.h       # Audio processor interface
-│   ├── PluginProcessor.cpp     # Audio processor implementation
-│   ├── PluginEditor.h          # Editor interface
-│   └── PluginEditor.cpp        # Editor implementation
-└── README.md                   # This file
+src/
+├── AudioEngine      Stereo-to-mono mixing, circular buffer, block RMS
+├── PitchEngine      Autocorrelation, octave correction, median filter, EMA smoothing
+├── MidiEngine       Hysteresis, candidate logic, scale quantization, velocity, pitch bend
+├── DrumEngine       Onset detection, retrigger protection, drum MIDI output
+├── PluginProcessor  Orchestrates engines, APVTS parameters, calibration state
+└── PluginEditor     JUCE UI — knobs, combos, mode switch, pitch display, calibrate button
 ```
 
-## Prerequisites
+Each engine has a single `prepare()` and `process()` method and no cross-dependencies. `PluginProcessor` owns all state and wires the data flow.
 
-- JUCE 8.x (source code distribution)
-- CMake 3.22+
-- C++17 compatible compiler (Visual Studio 2019+)
-- Git
-
-## Setup
-
-### 1. Clone JUCE
-
-Download JUCE 8.x from the [official repository](https://github.com/juce-framework/JUCE) and place it alongside this project:
-
-```
-Projects/
-├── Humvoice/          # This project
-└── juce-8.0.12-windows/  # JUCE source (rename to match your version)
-    └── JUCE/
-```
-
-### 2. Configure JUCE Path
-
-You can configure the JUCE path in several ways:
-
-**Option A: Environment Variable (Recommended)**
-```bash
-# Windows PowerShell
-$env:JUCE_PATH = "C:\Path\To\Your\Projects\juce-8.0.12-windows\JUCE"
-```
-
-**Option B: Modify CMakeLists.txt**
-Edit the `JUCE_PATH` variable in `CMakeLists.txt` to point to your JUCE installation.
+---
 
 ## Building
 
-### Configure
+### Prerequisites
+- JUCE 8.x source tree
+- CMake 3.22+
+- C++17 compiler (Visual Studio 2019/2022 or equivalent)
 
-```bash
-cmake -B build
+### JUCE Path
+
+**Option A — environment variable (recommended)**
+```powershell
+$env:JUCE_PATH = "C:\Path\To\JUCE"
 ```
 
-### Build
+**Option B — edit CMakeLists.txt**
+Set the `JUCE_PATH` variable to your JUCE installation directory.
 
+### Configure and Build
 ```bash
+cmake -B build
 cmake --build build --config Release
 ```
 
 ### Output
-
-The VST3 plugin will be created at:
 ```
 build/Humvoice_artefacts/Release/VST3/Humvoice.vst3
 ```
 
-## Development
+Copy or symlink into your DAW's VST3 scan path and rescan.
 
-### Adding DSP Logic
+---
 
-Modify `PluginProcessor::processBlock()` in `src/PluginProcessor.cpp`:
+## Plugin Info
 
-```cpp
-void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
-{
-    // Your DSP code here
-    // Example: apply gain
-    buffer.applyGain(0.5f);
-}
-```
+| Field | Value |
+|---|---|
+| Name | Humvoice |
+| Format | VST3 |
+| Category | Synth |
+| Manufacturer Code | Hmvc |
+| Plugin Code | Hmv1 |
+| Audio I/O | Stereo in, Stereo out |
+| MIDI | Output |
 
-### Adding UI Controls
-
-Modify `PluginEditor` classes in `src/PluginEditor.*`:
-
-```cpp
-// Add sliders, buttons, etc. in the constructor
-addAndMakeVisible(gainSlider);
-gainSlider.setRange(0.0, 1.0);
-gainSlider.onValueChange = [this] { /* handle value change */ };
-```
-
-## Plugin Information
-
-- **Name**: Humvoice
-- **Manufacturer**: Humvoice
-- **Plugin Code**: Hmv1
-- **Manufacturer Code**: Hmvc
-- **Category**: Synth
-- **Formats**: VST3
-
-## Notes
-
-- The plugin accepts MIDI input/output but doesn't process it (pass-through)
-- `processBlock()` is currently a no-op (no audio modification)
-- Editor shows basic UI with plugin name
-- State save/restore is stubbed but functional
-
-## Usage
-
-1. Open your DAW or VST3 host.
-2. Scan paths including `build/Humvoice_artefacts/Release/VST3`.
-3. Load `Humvoice.vst3`.
-4. MIDI in/out is available; audio is pass-through.
-
-## Build
-
-### Requirements
-- JUCE 8.x source tree
-- CMake 3.22+
-- Visual Studio 2019/2022 or equivalent with C++ support
-
-### Instructions
-
-```powershell
-cd "C:\Users\gviei\OneDrive\Documents\Projects\Humvoice"
-# Adjust JUCE_PATH if needed
-$env:JUCE_PATH = "C:\Users\gviei\OneDrive\Documents\juce-8.0.12-windows\JUCE"
-cmake -B build
-cmake --build build --config Release
-```
-
-### Output
-- `build/Humvoice_artefacts/Release/VST3/Humvoice.vst3`
-
-## Open Source Policy
-
-This project is open source. Please follow these guidelines:
-
-- Respect and courtesy are mandatory.
-- Harassment, hate speech, or toxic conduct are not tolerated.
-- Do not include credentials, keys, or sensitive data in code/pull requests.
-- Use `CMakeLists.local.txt` for local paths and variables.
-
-## Contributing
-
-1. Fork and clone this repository.
-2. Create a feature branch: `feature/your-feature`.
-3. Make changes with atomic commits and clear messages.
-4. Run build and tests before pushing.
-5. Open a PR with description and test details.
+---
 
 ## License
 
-This project is released under the same license as JUCE. See JUCE license for details.
+Released under the JUCE license. See the JUCE source tree for full terms.

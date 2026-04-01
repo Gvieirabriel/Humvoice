@@ -1,8 +1,11 @@
 #pragma once
 
 #include <juce_audio_processors/juce_audio_processors.h>
-#include <array>
 #include <atomic>
+#include "AudioEngine.h"
+#include "PitchEngine.h"
+#include "MidiEngine.h"
+#include "DrumEngine.h"
 
 class PluginProcessor : public juce::AudioProcessor
 {
@@ -38,30 +41,30 @@ public:
 
     float getDetectedPitchHz() const { return currentPitchHz.load(); }
 
-    juce::AudioProcessorValueTreeState apvts;
+    // ── Calibration ──────────────────────────────────────────────────────────
+    void startCalibration();
+    void stopCalibration();
+    bool isCalibrating() const { return calibrating_.load(); }
+    std::pair<float, float> getCalibrationRange() const
+    {
+        return { calibMinHz_.load(), calibMaxHz_.load() };
+    }
 
+    juce::AudioProcessorValueTreeState apvts;
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
 private:
-    static constexpr int   kMonoBufferSize       = 2048;
-    static constexpr int   kVelocity             = 100;
-    static constexpr int   kCandidateBlocks      = 5;     // consecutive blocks before committing
-    static constexpr float kPitchHysteresisCents = 60.0f; // ~half-semitone deadband
-    static constexpr float kMinNoteHoldMs        = 100.0f; // minimum hold time before note change
+    AudioEngine audioEngine;
+    PitchEngine pitchEngine;
+    MidiEngine  midiEngine;
+    DrumEngine  drumEngine;
 
-    std::array<float, kMonoBufferSize> monoCircularBuffer{};
-    int monoWriteIndex = 0;
-
-    double currentSampleRate   = 44100.0;
-    int    minNoteHoldSamples  = 0;      // derived from kMinNoteHoldMs in prepareToPlay
-    float  smoothingAlpha      = 0.2f;   // per-block EMA coefficient (set in prepareToPlay)
-    float  smoothedPitchHz     = 0.0f;   // exponentially smoothed pitch for display
     std::atomic<float> currentPitchHz { 0.0f };
 
-    int lastMidiNote    = -1;  // currently sounding note; -1 = silent
-    int candidateNote   = -1;  // proposed next note
-    int candidateBlocks = 0;   // consecutive blocks the candidate has held
-    int noteHoldSamples = 0;   // samples elapsed since last note change
+    // Calibration state
+    std::atomic<bool>  calibrating_  { false };
+    std::atomic<float> calibMinHz_   { 9999.0f };
+    std::atomic<float> calibMaxHz_   { 0.0f };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginProcessor)
 };
