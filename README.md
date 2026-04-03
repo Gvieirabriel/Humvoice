@@ -6,6 +6,8 @@ Humvoice captures audio from any input, detects pitch or transient onsets, and g
 
 ---
 
+<img width="472" height="427" alt="humvoice" src="https://github.com/user-attachments/assets/7d5b325c-36c3-4981-b8cc-7ce64ff34e97" />
+
 ## Features
 
 ### Pitch Mode
