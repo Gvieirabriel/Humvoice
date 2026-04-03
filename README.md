@@ -69,7 +69,7 @@ Humvoice captures audio from any input, detects pitch or transient onsets, and g
 4. Adjust **Sensitivity** and **Noise Gate** to dial in how hard you need to hit.
 
 ### Pitch Bend
-Pitch bend is always active in Pitch Mode. Humvoice sends 14-bit pitch bend messages continuously as your voice moves between notes, giving connected instruments expressive, human-feeling transitions. Pitch bend resets to centre on every note change. The receiving instrument must have its pitch bend range set to **±2 semitones** (MIDI standard) to match.
+Pitch bend is optional in Pitch Mode, turned off by default but recommended to better experience. Humvoice sends 14-bit pitch bend messages continuously as your voice moves between notes, giving connected instruments expressive, human-feeling transitions. Pitch bend resets to centre on every note change. The receiving instrument must have its pitch bend range set to **±2 semitones** (MIDI standard) to match.
 
 ---
 
