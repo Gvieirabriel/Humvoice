@@ -18,9 +18,10 @@ public:
     // scaleType      – 0=Off, 1=Major, 2=Minor
     // rootNote       – 0=C … 11=B
     // minNoteLengthMs – minimum ms a note must be held before switching
+    // enablePitchBend – when false, no pitch-bend messages are emitted
     void process(float hz, float smoothedHz, float rms, int numSamples,
                  juce::MidiBuffer& midiOut, int scaleType, int rootNote,
-                 float minNoteLengthMs);
+                 float minNoteLengthMs, bool enablePitchBend);
 
 private:
     static constexpr int   kCandidateBlocks       = 5;
@@ -30,6 +31,9 @@ private:
     static constexpr float kPitchBendRangeCents   = 200.0f;
     // Minimum change in bend LSBs before a new pitch-bend message is emitted.
     static constexpr int   kPitchBendDeadband     = 4;
+    // Low-pass coefficient for pitch-bend output smoothing (per block).
+    // Lower = smoother but more latent; 0.2 gives ~13 ms time constant at 128/44100.
+    static constexpr float kBendAlpha             = 0.2f;
 
     static int   rmsToVelocity(float rms);
     static int   hzToMidi(float hz);
@@ -40,9 +44,10 @@ private:
     float  velocityAlpha = 0.2f;
     float  smoothedRms   = 0.0f;
 
-    int lastMidiNote       = -1;
-    int candidateNote      = -1;
-    int candidateBlocks    = 0;
-    int noteHoldSamples    = 0;
-    int lastPitchBend_     = 8192;  // last sent pitch-bend value; 8192 = centre
+    int   lastMidiNote       = -1;
+    int   candidateNote      = -1;
+    int   candidateBlocks    = 0;
+    int   noteHoldSamples    = 0;
+    int   lastPitchBend_     = 8192;   // last sent value; 8192 = centre
+    float smoothedBend_      = 8192.0f; // low-pass filtered bend value
 };

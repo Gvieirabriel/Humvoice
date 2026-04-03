@@ -44,7 +44,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout PluginProcessor::createParam
             juce::ParameterID { "drumNote", 1 },
             "Drum Note",
             juce::NormalisableRange<float> (0.0f, 127.0f, 1.0f),
-            38.0f)   // default: snare (GM)
+            38.0f),
+        std::make_unique<juce::AudioParameterBool>(
+            juce::ParameterID { "enablePitchBend", 1 },
+            "Enable Pitch Bend",
+            false)
     };
 }
 
@@ -103,6 +107,7 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
         const float minNoteLengthMs = apvts.getRawParameterValue("minNoteLength")->load();
         const int   scaleType       = static_cast<int>(apvts.getRawParameterValue("scaleType")->load());
         const int   rootNote        = static_cast<int>(apvts.getRawParameterValue("rootNote")->load());
+        const bool  enablePitchBend = apvts.getRawParameterValue("enablePitchBend")->load() >= 0.5f;
 
         const float hz = pitchEngine.process(audioEngine.getBuffer(),
                                              AudioEngine::kBufferSize,
@@ -123,7 +128,7 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
 
         midiEngine.process(hz, pitchEngine.getSmoothedHz(), audioEngine.getRms(),
                            buffer.getNumSamples(), midiMessages, scaleType, rootNote,
-                           minNoteLengthMs);
+                           minNoteLengthMs, enablePitchBend);
     }
 }
 

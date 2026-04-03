@@ -14,11 +14,13 @@ void DrumEngine::prepare(double sampleRate, int /*samplesPerBlock*/)
 void DrumEngine::process(float rms, int numSamples, juce::MidiBuffer& midiOut,
                          int drumNote, float noiseGateDb, float sensitivity)
 {
-    // Advance retrigger cooldown
     retriggerSamples_ = std::max(0, retriggerSamples_ - numSamples);
 
+    // Save energy BEFORE updating so the onset ratio is computed against the
+    // background level, not the partially-tracked transient level.
+    const float prevEnergy = smoothedEnergy_;
+
     // Asymmetric envelope follower: rise fast, fall slow.
-    // "Background" tracks the sustain level; a transient spike sits well above it.
     if (rms > smoothedEnergy_)
         smoothedEnergy_ = 0.4f * rms  + 0.6f * smoothedEnergy_;
     else
@@ -26,25 +28,25 @@ void DrumEngine::process(float rms, int numSamples, juce::MidiBuffer& midiOut,
 
     const float gateLinear = std::pow(10.0f, noiseGateDb / 20.0f);
 
-    // Map sensitivity 0→1 to onset-ratio threshold 5.0→1.5
+    // sensitivity 0→1 maps onset-ratio threshold 5.0→1.5
     const float onsetRatio = 5.0f - sensitivity * 3.5f;
 
+    // Use prevEnergy so the transient spike isn't partially absorbed by the
+    // smoother before we check it.
     const bool onset = (rms > gateLinear)
-                    && (smoothedEnergy_ > 1e-6f)
-                    && (rms / smoothedEnergy_ > onsetRatio)
+                    && (prevEnergy > 1e-6f)
+                    && (rms / prevEnergy > onsetRatio)
                     && (retriggerSamples_ == 0);
 
     if (onset)
     {
         const int note = juce::jlimit(0, 127, drumNote);
 
-        // Velocity: logarithmic mapping of absolute amplitude, same curve as MidiEngine
         const float dB         = 20.0f * std::log10(std::max(rms, 1e-6f));
         const float normalized = (dB + 60.0f) / 60.0f;
         const auto  velocity   = static_cast<juce::uint8>(
             std::max(1, std::min(127, static_cast<int>(normalized * 126.0f + 1.0f))));
 
-        // Note-on at block start, note-off at block end (drums need only a brief gate)
         midiOut.addEvent(juce::MidiMessage::noteOn (1, note, velocity), 0);
         midiOut.addEvent(juce::MidiMessage::noteOff(1, note),           numSamples - 1);
 

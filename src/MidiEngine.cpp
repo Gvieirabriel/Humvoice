@@ -69,16 +69,17 @@ void MidiEngine::prepare(double sampleRate, int samplesPerBlock)
     candidateBlocks = 0;
     noteHoldSamples = 0;
     lastPitchBend_  = 8192;
+    smoothedBend_   = 8192.0f;
 }
 
 void MidiEngine::process(float hz, float smoothedHz, float rms, int numSamples,
                          juce::MidiBuffer& midiOut, int scaleType, int rootNote,
-                         float minNoteLengthMs)
+                         float minNoteLengthMs, bool enablePitchBend)
 {
     noteHoldSamples += numSamples;
     smoothedRms = velocityAlpha * rms + (1.0f - velocityAlpha) * smoothedRms;
 
-    // ── Note change logic (unchanged, uses median-filtered hz) ───────────────
+    // ── Note change logic ────────────────────────────────────────────────────
 
     const bool withinDeadband =
         (hz > 0.0f && lastMidiNote >= 0)
@@ -109,10 +110,11 @@ void MidiEngine::process(float hz, float smoothedHz, float rms, int numSamples,
             if (lastMidiNote >= 0)
                 midiOut.addEvent(juce::MidiMessage::noteOff(1, lastMidiNote), 0);
 
-            // Reset pitch bend to centre before starting the new note so the
-            // receiving instrument doesn't inherit a stale bend value.
+            // Reset pitch bend to centre before the new note so the receiving
+            // instrument doesn't inherit a stale bend value.
             midiOut.addEvent(juce::MidiMessage::pitchWheel(1, 8192), 0);
             lastPitchBend_ = 8192;
+            smoothedBend_  = 8192.0f;
 
             if (candidateNote >= 0)
             {
@@ -126,29 +128,33 @@ void MidiEngine::process(float hz, float smoothedHz, float rms, int numSamples,
         }
     }
 
-    // ── Pitch bend (uses EMA-smoothed hz for continuous, smooth output) ──────
+    // ── Pitch bend ───────────────────────────────────────────────────────────
 
-    if (lastMidiNote >= 0 && smoothedHz > 0.0f)
+    if (enablePitchBend && lastMidiNote >= 0 && smoothedHz > 0.0f)
     {
-        // Cents deviation of the smoothed pitch from the held MIDI note's centre freq
+        // Deviation of the smoothed pitch from the held note's centre frequency
         const float noteHz = 440.0f * std::pow(2.0f, (lastMidiNote - 69) / 12.0f);
         const float cents  = 1200.0f * std::log2(smoothedHz / noteHz);
 
-        // Map cents to 14-bit pitch-bend value: 8192 = centre, range ±kPitchBendRangeCents
-        const int bend = 8192 + static_cast<int>(
-            juce::jlimit(-8192.0f, 8191.0f,
-                         (cents / kPitchBendRangeCents) * 8192.0f));
+        // Target 14-bit bend value
+        const float targetBend = 8192.0f + juce::jlimit(-8192.0f, 8191.0f,
+                                     (cents / kPitchBendRangeCents) * 8192.0f);
 
+        // Low-pass filter to suppress jitter from frame-to-frame pitch variation
+        smoothedBend_ = kBendAlpha * targetBend + (1.0f - kBendAlpha) * smoothedBend_;
+
+        const int bend = static_cast<int>(std::round(smoothedBend_));
         if (std::abs(bend - lastPitchBend_) >= kPitchBendDeadband)
         {
             midiOut.addEvent(juce::MidiMessage::pitchWheel(1, bend), 0);
             lastPitchBend_ = bend;
         }
     }
-    else if (lastMidiNote < 0 && lastPitchBend_ != 8192)
+    else if (lastPitchBend_ != 8192)
     {
-        // No active note — return to centre so the channel is clean.
+        // Pitch bend disabled, no active note, or no pitch detected — return to centre.
         midiOut.addEvent(juce::MidiMessage::pitchWheel(1, 8192), 0);
         lastPitchBend_ = 8192;
+        smoothedBend_  = 8192.0f;
     }
 }

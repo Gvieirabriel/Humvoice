@@ -16,32 +16,38 @@ public:
 
 private:
     void timerCallback() override;
-    void paintPitchDisplay(juce::Graphics&, juce::Rectangle<int> area);
+    void paintDisplay(juce::Graphics&, juce::Rectangle<int> area);
+    void updateVisibility(bool isDrum);
     void stopCalibration();
 
     PluginProcessor& processorRef;
 
-    // ── Mode selector ─────────────────────────────────────────────────────────
+    // ── Header ────────────────────────────────────────────────────────────────
     juce::ComboBox modeBox;
     juce::Label    modeLabel;
 
+    // ── Section headers ───────────────────────────────────────────────────────
+    juce::Label sectionDetection, sectionMusical, sectionExpression, sectionDrum;
+
+    // ── Detection controls (shared) ───────────────────────────────────────────
+    juce::Slider sensitivitySlider, noiseGateSlider;
+    juce::Label  sensitivityLabel,  noiseGateLabel;
+
     // ── Pitch-mode controls ───────────────────────────────────────────────────
-    juce::Slider sensitivitySlider;
-    juce::Slider noiseGateSlider;
-    juce::Slider smoothingSlider;
-    juce::Slider minNoteLengthSlider;
+    juce::Slider   smoothingSlider, minNoteLengthSlider;
+    juce::Label    smoothingLabel,  minNoteLengthLabel;
+    juce::ComboBox scaleTypeBox,    rootNoteBox;
+    juce::Label    scaleTypeLabel,  rootNoteLabel;
 
-    juce::Label sensitivityLabel;
-    juce::Label noiseGateLabel;
-    juce::Label smoothingLabel;
-    juce::Label minNoteLengthLabel;
+    // ── Expression ───────────────────────────────────────────────────────────
+    juce::ToggleButton pitchBendToggle;
 
-    juce::ComboBox scaleTypeBox;
-    juce::ComboBox rootNoteBox;
-    juce::Label    scaleTypeLabel;
-    juce::Label    rootNoteLabel;
-
+    // ── Calibration ───────────────────────────────────────────────────────────
     juce::TextButton calibrateButton { "Calibrate" };
+    bool             calibrating_        = false;
+    int              calibTicks_         = 0;
+    int              resultDisplayTicks_ = 0;
+    juce::String     calibResultText_;
 
     // ── Drum-mode controls ────────────────────────────────────────────────────
     juce::Slider drumNoteSlider;
@@ -50,6 +56,7 @@ private:
     // ── APVTS attachments ─────────────────────────────────────────────────────
     using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
     using ComboAttachment  = juce::AudioProcessorValueTreeState::ComboBoxAttachment;
+    using ButtonAttachment = juce::AudioProcessorValueTreeState::ButtonAttachment;
 
     ComboAttachment  modeAttachment;
     SliderAttachment sensitivityAttachment;
@@ -58,20 +65,15 @@ private:
     SliderAttachment minNoteLengthAttachment;
     ComboAttachment  scaleTypeAttachment;
     ComboAttachment  rootNoteAttachment;
+    ButtonAttachment pitchBendAttachment;
     SliderAttachment drumNoteAttachment;
 
-    // ── Pitch display state ───────────────────────────────────────────────────
-    juce::String displayNote     { "--" };
-    juce::String displayCents    { "" };
-    float        stabilityScore  { 0.0f };
-    float        prevHz          { 0.0f };
-    float        smoothedDelta   { 0.0f };
-
-    // ── Calibration UI state ──────────────────────────────────────────────────
-    bool         calibrating_        = false;
-    int          calibTicks_         = 0;
-    int          resultDisplayTicks_ = 0;
-    juce::String calibResultText_;
+    // ── Display state ─────────────────────────────────────────────────────────
+    juce::String displayNote    { "--" };
+    juce::String displayCents   { "" };
+    float        stabilityScore { 0.0f };
+    float        prevHz         { 0.0f };
+    float        smoothedDelta  { 0.0f };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginEditor)
 };
